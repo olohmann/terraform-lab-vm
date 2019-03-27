@@ -10,7 +10,7 @@ export RESOURCE_GROUP_NAME=<RG_NAME>
 terraform init
 terraform plan \
     -var "username=$USER_NAME" \
-    –var "password=$PASSWORD" \
+    -var "password=$PASSWORD" \
     -var "resource_group_name=$RESOURCE_GROUP_NAME" \
     -out=tfplan
 
