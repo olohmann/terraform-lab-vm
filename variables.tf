@@ -12,6 +12,7 @@ variable "password" {
     type = "string"
     description = "The Lab VM password"
 }
+
 variable "vm_size" {
     type = "string"
     description = "The size of the Lab VM."

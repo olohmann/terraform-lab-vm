@@ -1,9 +1,9 @@
 data "azurerm_resource_group" "rg" {
-  name     = "${var.resource_group_name}"
+  name = "${var.resource_group_name}"
 }
 
 locals {
-  unique = "${substr(sha256(data.azurerm_resource_group.rg.id), 0, 8)}" 
+  unique = "${substr(sha256(data.azurerm_resource_group.rg.id), 0, 8)}"
 }
 
 resource "azurerm_storage_account" "script_storage" {
@@ -69,8 +69,8 @@ resource "azurerm_public_ip" "win_pip" {
   location            = "${data.azurerm_resource_group.rg.location}"
   resource_group_name = "${data.azurerm_resource_group.rg.name}"
 
-  public_ip_address_allocation = "dynamic"
-  domain_name_label            = "vm-${local.unique}"
+  allocation_method = "Dynamic"
+  domain_name_label = "vm-${local.unique}"
 }
 
 resource "azurerm_network_interface" "win_nic" {
@@ -108,7 +108,7 @@ resource "azurerm_virtual_machine" "win_vm" {
     name          = "osdisk-${local.unique}"
     caching       = "ReadWrite"
     create_option = "FromImage"
-    disk_size_gb = 512
+    disk_size_gb  = 512
   }
 
   os_profile {
