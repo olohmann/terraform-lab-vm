@@ -17,7 +17,7 @@ resource "random_id" "rand" {
 resource "azurerm_storage_account" "script_storage" {
   count = length(var.resource_group_names)
 
-  name                     = "vm${format("%02d", count.index)}${random_id.rand.*.hex[count.index]}"
+  name                     = "vm${format("%02d", count.index + 1)}${random_id.rand.*.hex[count.index]}"
   resource_group_name      = data.azurerm_resource_group.rg.*.name[count.index]
   location                 = data.azurerm_resource_group.rg.*.location[count.index]
   account_tier             = "Standard"
@@ -48,8 +48,8 @@ resource "azurerm_storage_blob" "win_script_blob" {
 resource "azurerm_virtual_network" "vnet" {
   count = length(var.resource_group_names)
 
-  name                = "vnet"
-  address_space       = ["10.0.0.0/24"]
+  name                = "vnet-${format("%02d", count.index + 1)}"
+  address_space       = ["10.0.${count.index + 1}.0/24"]
   resource_group_name = data.azurerm_resource_group.rg.*.name[count.index]
   location            = data.azurerm_resource_group.rg.*.location[count.index]
 }
@@ -57,17 +57,17 @@ resource "azurerm_virtual_network" "vnet" {
 resource "azurerm_subnet" "subnet" {
   count = length(var.resource_group_names)
 
-  name                 = "default"
+  name                 = "default-${format("%02d", count.index + 1)}"
   resource_group_name  = data.azurerm_resource_group.rg.*.name[count.index]
   virtual_network_name = azurerm_virtual_network.vnet.*.name[count.index]
-  address_prefix       = "10.0.0.0/24"
+  address_prefix       = "10.0.${count.index + 1}.0/24"
 }
 
 
 resource "azurerm_network_security_group" "nsg" {
   count = length(var.resource_group_names)
 
-  name                = "nsg"
+  name                = "nsg-${format("%02d", count.index + 1)}"
   resource_group_name = data.azurerm_resource_group.rg.*.name[count.index]
   location            = data.azurerm_resource_group.rg.*.location[count.index]
 
@@ -88,11 +88,11 @@ resource "azurerm_network_security_group" "nsg" {
 resource "azurerm_public_ip" "win_pip" {
   count = length(var.resource_group_names)
 
-  name                = "pip"
+  name                = "pip-${format("%02d", count.index + 1)}"
   resource_group_name = data.azurerm_resource_group.rg.*.name[count.index]
   location            = data.azurerm_resource_group.rg.*.location[count.index]
   allocation_method   = "Dynamic"
-  domain_name_label   = "vm-${random_id.rand.*.hex[count.index]}"
+  domain_name_label   = "vm-${format("%02d", count.index + 1)}-${random_id.rand.*.hex[count.index]}"
 }
 
 
@@ -100,13 +100,13 @@ resource "azurerm_public_ip" "win_pip" {
 resource "azurerm_network_interface" "win_nic" {
   count = length(var.resource_group_names)
 
-  name                      = "nic"
+  name                      = "nic-${format("%02d", count.index + 1)}"
   resource_group_name       = data.azurerm_resource_group.rg.*.name[count.index]
   location                  = data.azurerm_resource_group.rg.*.location[count.index]
   network_security_group_id = azurerm_network_security_group.nsg.*.id[count.index]
 
   ip_configuration {
-    name                          = "ipconfig"
+    name                          = "ipconfig-${format("%02d", count.index + 1)}"
     subnet_id                     = azurerm_subnet.subnet.*.id[count.index]
     private_ip_address_allocation = "dynamic"
     public_ip_address_id          = azurerm_public_ip.win_pip.*.id[count.index]
@@ -117,7 +117,7 @@ resource "azurerm_network_interface" "win_nic" {
 resource "azurerm_virtual_machine" "win_vm" {
   count = length(var.resource_group_names)
 
-  name                  = "vm"
+  name                  = "vm-${format("%02d", count.index + 1)}"
   resource_group_name   = data.azurerm_resource_group.rg.*.name[count.index]
   location              = data.azurerm_resource_group.rg.*.location[count.index]
   network_interface_ids = list(azurerm_network_interface.win_nic.*.id[count.index])
@@ -134,14 +134,14 @@ resource "azurerm_virtual_machine" "win_vm" {
   }
 
   storage_os_disk {
-    name          = "osdisk"
+    name          = "osdisk-${format("%02d", count.index + 1)}"
     caching       = "ReadWrite"
     create_option = "FromImage"
     disk_size_gb  = 512
   }
 
   os_profile {
-    computer_name  = "vm"
+    computer_name  = "vm-${format("%02d", count.index + 1)}"
     admin_username = var.usernames[count.index]
     admin_password = var.passwords[count.index]
   }
@@ -155,7 +155,7 @@ resource "azurerm_virtual_machine" "win_vm" {
 resource "azurerm_virtual_machine_extension" "win_ext" {
   count = length(var.resource_group_names)
 
-  name                 = "vm-ext"
+  name                 = "vm-ext-${format("%02d", count.index + 1)}"
   resource_group_name  = data.azurerm_resource_group.rg.*.name[count.index]
   location             = data.azurerm_resource_group.rg.*.location[count.index]
   virtual_machine_name = azurerm_virtual_machine.win_vm.*.name[count.index]
