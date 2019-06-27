@@ -1,10 +1,15 @@
+locals {
+  # count - if max count is set (>0), then take max_count but only if smaller than actual list of resource group names
+  count_value = var.max_count > 0 ? min(var.max_count, length(var.resource_group_names)) : length(var.resource_group_names)
+}
+
 data "azurerm_resource_group" "rg" {
-  count = length(var.resource_group_names)
+  count = local.count_value
   name  = element(var.resource_group_names, count.index)
 }
 
 resource "random_id" "rand" {
-  count = length(var.resource_group_names)
+  count = local.count_value
 
   keepers = {
     rg_id = data.azurerm_resource_group.rg.*.id[count.index]
@@ -15,7 +20,7 @@ resource "random_id" "rand" {
 
 
 resource "azurerm_storage_account" "script_storage" {
-  count = length(var.resource_group_names)
+  count = local.count_value
 
   name                     = "vm${format("%02d", count.index + 1)}${random_id.rand.*.hex[count.index]}"
   resource_group_name      = data.azurerm_resource_group.rg.*.name[count.index]
@@ -26,7 +31,7 @@ resource "azurerm_storage_account" "script_storage" {
 
 
 resource "azurerm_storage_container" "script_container" {
-  count = length(var.resource_group_names)
+  count = local.count_value
 
   name                  = "scripts"
   resource_group_name   = data.azurerm_resource_group.rg.*.name[count.index]
@@ -35,7 +40,7 @@ resource "azurerm_storage_container" "script_container" {
 }
 
 resource "azurerm_storage_blob" "win_script_blob" {
-  count = length(var.resource_group_names)
+  count = local.count_value
 
   name                   = "installLabVM.ps1"
   resource_group_name    = data.azurerm_resource_group.rg.*.name[count.index]
@@ -46,7 +51,7 @@ resource "azurerm_storage_blob" "win_script_blob" {
 }
 
 resource "azurerm_virtual_network" "vnet" {
-  count = length(var.resource_group_names)
+  count = local.count_value
 
   name                = "vnet-${format("%02d", count.index + 1)}"
   address_space       = ["10.0.${count.index + 1}.0/24"]
@@ -55,7 +60,7 @@ resource "azurerm_virtual_network" "vnet" {
 }
 
 resource "azurerm_subnet" "subnet" {
-  count = length(var.resource_group_names)
+  count = local.count_value
 
   name                 = "default-${format("%02d", count.index + 1)}"
   resource_group_name  = data.azurerm_resource_group.rg.*.name[count.index]
@@ -65,7 +70,7 @@ resource "azurerm_subnet" "subnet" {
 
 
 resource "azurerm_network_security_group" "nsg" {
-  count = length(var.resource_group_names)
+  count = local.count_value
 
   name                = "nsg-${format("%02d", count.index + 1)}"
   resource_group_name = data.azurerm_resource_group.rg.*.name[count.index]
@@ -86,7 +91,7 @@ resource "azurerm_network_security_group" "nsg" {
 
 
 resource "azurerm_public_ip" "win_pip" {
-  count = length(var.resource_group_names)
+  count = local.count_value
 
   name                = "pip-${format("%02d", count.index + 1)}"
   resource_group_name = data.azurerm_resource_group.rg.*.name[count.index]
@@ -98,7 +103,7 @@ resource "azurerm_public_ip" "win_pip" {
 
 # ------------------- Windows VM ---------------------------------------------
 resource "azurerm_network_interface" "win_nic" {
-  count = length(var.resource_group_names)
+  count = local.count_value
 
   name                      = "nic-${format("%02d", count.index + 1)}"
   resource_group_name       = data.azurerm_resource_group.rg.*.name[count.index]
@@ -115,7 +120,7 @@ resource "azurerm_network_interface" "win_nic" {
 
 
 resource "azurerm_virtual_machine" "win_vm" {
-  count = length(var.resource_group_names)
+  count = local.count_value
 
   name                  = "vm-${format("%02d", count.index + 1)}"
   resource_group_name   = data.azurerm_resource_group.rg.*.name[count.index]
@@ -153,7 +158,7 @@ resource "azurerm_virtual_machine" "win_vm" {
 }
 
 resource "azurerm_virtual_machine_extension" "win_ext" {
-  count = length(var.resource_group_names)
+  count = local.count_value
 
   name                 = "vm-ext-${format("%02d", count.index + 1)}"
   resource_group_name  = data.azurerm_resource_group.rg.*.name[count.index]
@@ -170,4 +175,17 @@ resource "azurerm_virtual_machine_extension" "win_ext" {
         "commandToExecute": "powershell -ExecutionPolicy Unrestricted -File ./installLabVM.ps1"
     }
 SETTINGS
+}
+
+output "vm_dns_names" {
+  value = azurerm_public_ip.win_pip.*.fqdn
+}
+
+output "users" {
+  value = var.usernames
+}
+
+output "passwords" {
+  value = var.passwords
+  sensitive = true
 }

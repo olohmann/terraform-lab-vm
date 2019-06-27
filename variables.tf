@@ -18,3 +18,8 @@ variable "vm_size" {
     description = "The size of the Lab VM."
     default = "Standard_D4_v3"
 }
+
+variable "max_count" {
+    type = number
+    default = 0
+}
