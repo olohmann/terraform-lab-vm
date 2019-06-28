@@ -15,7 +15,7 @@ resource "random_id" "rand" {
     rg_id = data.azurerm_resource_group.rg.*.id[count.index]
   }
 
-  byte_length = 6
+  byte_length = 2
 }
 
 
